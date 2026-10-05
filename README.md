@@ -1,5 +1,13 @@
 # Switchboard
 
+<img align="left" src="https://user-images.githubusercontent.com/759811/210273710-b13913e2-0a71-4d9d-94da-1fe538b8a73e.gif"/>
+
+<br/>
+
+ &nbsp;**Would you take a quick second and ⭐️ my repo?**
+
+<br/>
+
 A minimal wrapper for web apps on macOS, built on the system WebKit (always as current as Safari).
 
 ![Switchboard with Slack selected, showing count and dot badges in the sidebar](docs/screenshot-chat.png)
