@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Builds Switchboard.app into ./build. Pass --install to copy it to /Applications, --run to launch it.
+# Set VERSION and BUILD_NUMBER to stamp the app's Info.plist (used by the release workflow).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -11,6 +12,12 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin/Switchboard" "$app/Contents/MacOS/Switchboard"
 cp Resources/Info.plist "$app/Contents/Info.plist"
 cp Resources/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
+if [[ -n "${VERSION:-}" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$app/Contents/Info.plist"
+fi
+if [[ -n "${BUILD_NUMBER:-}" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$app/Contents/Info.plist"
+fi
 codesign --force --sign - "$app"
 echo "Built $app"
 
