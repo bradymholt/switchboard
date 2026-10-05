@@ -6,12 +6,23 @@ A minimal wrapper for web apps on macOS, built on the system WebKit (always as c
 
 ![Switchboard with Google Calendar selected](docs/screenshot-calendar.png)
 
-## Requirements
+## Install
 
-- macOS 15 or later
-- Swift 6 (Xcode 16 or later, or the Command Line Tools)
+Requires macOS 15 or later.
 
-## Build
+1. Download `Switchboard-<version>.zip` from the [latest release](https://github.com/bradymholt/switchboard/releases/latest) and unzip it.
+2. Move `Switchboard.app` to `/Applications`.
+3. The app isn't notarized, so macOS blocks the first launch. Clear the quarantine flag:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Switchboard.app
+   ```
+
+   Or try to open it once, then click **Open Anyway** in System Settings → Privacy & Security.
+
+## Build from source
+
+Requires Swift 6 (Xcode 16 or later, or the Command Line Tools).
 
 ```bash
 ./build.sh            # builds build/Switchboard.app
