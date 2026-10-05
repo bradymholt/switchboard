@@ -6,6 +6,11 @@ A minimal wrapper for web apps on macOS, built on the system WebKit (always as c
 
 ![Switchboard with Google Calendar selected](docs/screenshot-calendar.png)
 
+## Requirements
+
+- macOS 15 or later
+- Swift 6 (Xcode 16 or later, or the Command Line Tools)
+
 ## Build
 
 ```bash
@@ -42,3 +47,7 @@ Edit `~/.config/switchboard/services.json` (⌘, in the app). Changes apply with
 - ⌘1–9 switch services, ⇧⌘[ / ⇧⌘] cycle, ⌘R reload, ⌘[ / ⌘] back/forward, ⌘= / ⌘- / ⌘0 zoom.
 - Closing the window hides it; services keep running. Right-click an icon for reload / open in browser / copy URL.
 - Web Inspector: right-click page → Inspect Element.
+
+## License
+
+[MIT](LICENSE)
