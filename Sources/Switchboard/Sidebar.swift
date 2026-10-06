@@ -113,8 +113,9 @@ private struct BadgeView: View {
         case .dot:
             Circle()
                 .fill(Color.red)
-                .frame(width: 19, height: 19)
+                .frame(width: 15, height: 15)
                 .overlay(Circle().strokeBorder(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5))
+                .frame(width: 19, height: 19)
         case .count(let n):
             Text(n > 99 ? "99+" : "\(n)")
                 .font(.system(size: 11, weight: .bold))
