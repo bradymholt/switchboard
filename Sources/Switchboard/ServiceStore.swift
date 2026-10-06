@@ -98,18 +98,43 @@ final class ServiceStore: ObservableObject {
 }
 
 final class WebContainerView: NSView {
+    let findBar = FindBarView()
+    private let content = NSView()
+    private(set) var current: WKWebView?
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        addSubview(content)
+        addSubview(findBar)
+        findBar.webView = { [weak self] in self?.current }
+        findBar.onVisibilityChange = { [weak self] in self?.needsLayout = true }
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layout() {
+        super.layout()
+        let barHeight = findBar.isHidden ? 0 : FindBarView.height
+        findBar.frame = NSRect(x: 0, y: bounds.height - FindBarView.height, width: bounds.width, height: FindBarView.height)
+        content.frame = NSRect(x: 0, y: 0, width: bounds.width, height: bounds.height - barHeight)
+    }
+
     func show(_ controllers: [ServiceController], selected: String?) {
-        let current = Set(controllers.map { ObjectIdentifier($0.webView) })
-        subviews.filter { !current.contains(ObjectIdentifier($0)) }.forEach { $0.removeFromSuperview() }
+        let keep = Set(controllers.map { ObjectIdentifier($0.webView) })
+        content.subviews.filter { !keep.contains(ObjectIdentifier($0)) }.forEach { $0.removeFromSuperview() }
+        current = nil
         for controller in controllers {
             let webView = controller.webView
-            if webView.superview !== self {
-                webView.frame = bounds
+            if webView.superview !== content {
+                webView.frame = content.bounds
                 webView.autoresizingMask = [.width, .height]
-                addSubview(webView)
+                content.addSubview(webView)
             }
             webView.isHidden = controller.config.id != selected
-            if !webView.isHidden { window?.makeFirstResponder(webView) }
+            if !webView.isHidden {
+                current = webView
+                if findBar.isHidden { window?.makeFirstResponder(webView) }
+            }
         }
     }
 }
