@@ -63,7 +63,7 @@ Edit `~/.config/switchboard/services.json` (⌘, in the app). Changes apply with
 - Web notifications become macOS notifications; clicking one opens the service and fires the page's `onclick`.
 - Dock badge shows the total unread count.
 - Links to other sites open in your default browser; sign-in popups (Google, Microsoft, Apple, Okta…) stay in-app.
-- ⌘1–9 switch services, ⇧⌘[ / ⇧⌘] cycle, ⌘R reload, ⌘[ / ⌘] back/forward, ⌘= / ⌘- / ⌘0 zoom.
+- ⌘1–9 switch services, ⇧⌘[ / ⇧⌘] cycle, ⌘R reload, ⌘[ / ⌘] back/forward, ⌘= / ⌘- / ⌘0 zoom, ⌘F find in page.
 - Closing the window hides it; services keep running. Right-click an icon for reload / open in browser / copy URL.
 - Web Inspector: right-click page → Inspect Element.
 
