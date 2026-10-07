@@ -83,6 +83,16 @@ enum WebRouting {
         return authOnlyDomains.contains(base) || ["accounts.", "login.", "signin.", "auth.", "appleid.", "idmsa."].contains { host.hasPrefix($0) }
     }
 
+    /// Google wraps outbound links (Calendar, Gmail, Docs) in `google.com/url?q=…`, which serves an
+    /// HTML redirect page rather than a 302. Route on the destination so it isn't mistaken for a Google page.
+    static func unwrappingRedirector(_ url: URL) -> URL {
+        guard let host = url.host?.lowercased(), baseDomain(host) == "google.com", url.path == "/url",
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+              let target = items.first(where: { $0.name == "q" || $0.name == "url" })?.value,
+              let destination = URL(string: target), destination.host != nil else { return url }
+        return destination
+    }
+
     static func baseDomain(_ host: String?) -> String? {
         guard let parts = host?.lowercased().split(separator: "."), parts.count >= 2 else { return host }
         let secondLevel = ["co", "com", "org", "net", "ac", "gov", "edu"]
@@ -290,8 +300,9 @@ final class ServiceController: NSObject, ObservableObject {
             NSWorkspace.shared.open(url)
             return true
         }
-        if linkActivated && !allowsInApp(url) {
-            NSWorkspace.shared.open(url)
+        let destination = WebRouting.unwrappingRedirector(url)
+        if linkActivated && !allowsInApp(destination) {
+            NSWorkspace.shared.open(destination)
             return true
         }
         return false
