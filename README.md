@@ -42,6 +42,8 @@ Requires Swift 6 (Xcode 16 or later, or the Command Line Tools).
 
 Edit `~/.config/switchboard/services.json` (⌘, in the app). Changes apply within ~2 seconds.
 
+⌘, opens the file in whatever app macOS uses for `.json` files. To change it, select the file in Finder, press ⌘I, pick an app under "Open with", and click "Change All".
+
 ```json
 [
   { "name": "Gmail", "url": "https://mail.google.com/mail/u/0/", "profile": "work" },
