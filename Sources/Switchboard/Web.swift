@@ -300,8 +300,13 @@ final class ServiceController: NSObject, ObservableObject {
             NSWorkspace.shared.open(url)
             return true
         }
+        guard linkActivated else { return false }
         let destination = WebRouting.unwrappingRedirector(url)
-        if linkActivated && !allowsInApp(destination) {
+        if let target = store?.controller(forHost: destination.host, from: self) {
+            store?.open(destination, in: target)
+            return true
+        }
+        if !allowsInApp(destination) {
             NSWorkspace.shared.open(destination)
             return true
         }

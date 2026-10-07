@@ -64,6 +64,19 @@ final class ServiceStore: ObservableObject {
         container.show(controllers, selected: id)
     }
 
+    /// Another service whose host matches exactly, so a link to it opens in-app instead of the browser.
+    /// Services sharing a host (e.g. two Gmail accounts) are disambiguated by the origin's profile.
+    func controller(forHost host: String?, from origin: ServiceController) -> ServiceController? {
+        guard let host = host?.lowercased(), host != origin.config.url.host?.lowercased() else { return nil }
+        let matches = controllers.filter { $0 !== origin && $0.config.url.host?.lowercased() == host }
+        return matches.first { $0.config.profile == origin.config.profile } ?? matches.first
+    }
+
+    func open(_ url: URL, in controller: ServiceController) {
+        controller.webView.load(URLRequest(url: url))
+        select(controller.config.id)
+    }
+
     func selectAdjacent(_ offset: Int) {
         guard !controllers.isEmpty else { return }
         let index = controllers.firstIndex { $0.config.id == selectedID } ?? 0
