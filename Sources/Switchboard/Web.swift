@@ -101,9 +101,10 @@ enum WebRouting {
     }
 
     private static func googleAccountIndex(_ url: URL) -> String {
-        if let match = url.path.firstMatch(of: #/\/u\/(\d+)(\/|$)/#) { return String(match.1) }
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
-        return items?.first(where: { $0.name == "authuser" })?.value ?? "0"
+        if let authuser = items?.first(where: { $0.name == "authuser" })?.value { return authuser }
+        if let match = url.path.firstMatch(of: #/\/u\/(\d+)(\/|$)/#) { return String(match.1) }
+        return "0"
     }
 
     static func baseDomain(_ host: String?) -> String? {
