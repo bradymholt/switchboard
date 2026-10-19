@@ -107,6 +107,14 @@ enum WebRouting {
         return "0"
     }
 
+    /// Domains whose subdomains are unrelated apps (Gmail vs. Docs), so links between them leave the service.
+    static let multiAppDomains: Set<String> = ["google.com"]
+
+    static func siteKey(_ host: String?) -> String? {
+        guard let base = baseDomain(host) else { return nil }
+        return multiAppDomains.contains(base) ? host?.lowercased() : base
+    }
+
     static func baseDomain(_ host: String?) -> String? {
         guard let parts = host?.lowercased().split(separator: "."), parts.count >= 2 else { return host }
         let secondLevel = ["co", "com", "org", "net", "ac", "gov", "edu"]
@@ -304,8 +312,8 @@ final class ServiceController: NSObject, ObservableObject {
     // MARK: Routing
 
     func allowsInApp(_ url: URL) -> Bool {
-        guard let base = WebRouting.baseDomain(url.host) else { return true }
-        return base == WebRouting.baseDomain(config.url.host) || WebRouting.isSignInPage(url)
+        guard let site = WebRouting.siteKey(url.host) else { return true }
+        return site == WebRouting.siteKey(config.url.host) || WebRouting.isSignInPage(url)
     }
 
     /// Returns true when the URL was handed to another app and the web view should not load it.
