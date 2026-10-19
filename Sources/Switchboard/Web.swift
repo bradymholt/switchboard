@@ -93,6 +93,19 @@ enum WebRouting {
         return destination
     }
 
+    /// Google's account switcher opens the other account (`/u/1/`, `?authuser=1`) in a new tab.
+    static func isGoogleAccountSwitch(to url: URL, from current: URL?) -> Bool {
+        guard let current, url.host?.lowercased() == current.host?.lowercased(),
+              baseDomain(url.host) == "google.com" else { return false }
+        return googleAccountIndex(url) != googleAccountIndex(current)
+    }
+
+    private static func googleAccountIndex(_ url: URL) -> String {
+        if let match = url.path.firstMatch(of: #/\/u\/(\d+)(\/|$)/#) { return String(match.1) }
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        return items?.first(where: { $0.name == "authuser" })?.value ?? "0"
+    }
+
     static func baseDomain(_ host: String?) -> String? {
         guard let parts = host?.lowercased().split(separator: "."), parts.count >= 2 else { return host }
         let secondLevel = ["co", "com", "org", "net", "ac", "gov", "edu"]
@@ -379,7 +392,9 @@ extension ServiceController: WKUIDelegate {
            routeExternally(url, linkActivated: true) {
             return nil
         }
-        if action.navigationType == .linkActivated, let url = action.request.url, WebRouting.isSignInPage(url) {
+        if let url = action.request.url,
+           (action.navigationType == .linkActivated && WebRouting.isSignInPage(url))
+            || WebRouting.isGoogleAccountSwitch(to: url, from: self.webView.url) {
             self.webView.load(action.request)
             return nil
         }
