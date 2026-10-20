@@ -149,6 +149,7 @@ final class ServiceController: NSObject, ObservableObject {
         configuration.websiteDataStore = DataStores.store(for: config.profile)
         configuration.applicationNameForUserAgent = WebRouting.userAgentSuffix
         configuration.preferences.isElementFullscreenEnabled = true
+        configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.userContentController.addUserScript(
             WKUserScript(source: Scripts.bridge, injectionTime: .atDocumentStart, forMainFrameOnly: false))
