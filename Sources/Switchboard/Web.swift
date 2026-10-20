@@ -123,6 +123,14 @@ enum WebRouting {
     }
 }
 
+/// Developer extras put "Inspect Element" in the context menu; the inspector is reachable from the View menu instead.
+final class ServiceWebView: WKWebView {
+    override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
+        super.willOpenMenu(menu, with: event)
+        menu.items.removeAll { $0.identifier?.rawValue == "WKMenuItemIdentifierInspectElement" }
+    }
+}
+
 @MainActor
 final class ServiceController: NSObject, ObservableObject {
     let config: ServiceConfig
@@ -155,7 +163,7 @@ final class ServiceController: NSObject, ObservableObject {
             WKUserScript(source: Scripts.bridge, injectionTime: .atDocumentStart, forMainFrameOnly: false))
         let handler = ScriptHandler()
         configuration.userContentController.add(handler, name: "switchboard")
-        webView = WKWebView(frame: .zero, configuration: configuration)
+        webView = ServiceWebView(frame: .zero, configuration: configuration)
         super.init()
 
         handler.controller = self
@@ -200,6 +208,12 @@ final class ServiceController: NSObject, ObservableObject {
     func copyURL() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString((webView.url ?? config.url).absoluteString, forType: .string)
+    }
+
+    func showInspector() {
+        guard webView.responds(to: NSSelectorFromString("_inspector")),
+              let inspector = webView.value(forKey: "_inspector") as? NSObject else { return }
+        inspector.perform(NSSelectorFromString("show"))
     }
 
     func notificationClicked(id: String) {
@@ -468,7 +482,7 @@ final class PopupWindow: NSObject {
 
     init(configuration: WKWebViewConfiguration, features: WKWindowFeatures, owner: ServiceController) {
         let frame = NSRect(x: 0, y: 0, width: features.width?.doubleValue ?? 900, height: features.height?.doubleValue ?? 720)
-        webView = WKWebView(frame: frame, configuration: configuration)
+        webView = ServiceWebView(frame: frame, configuration: configuration)
         window = NSWindow(contentRect: frame, styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
         self.owner = owner
         super.init()

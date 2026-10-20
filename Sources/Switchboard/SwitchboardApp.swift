@@ -28,6 +28,7 @@ struct SwitchboardApp: App {
                     Button("Zoom In") { store.selected?.zoom(by: 0.1) }.keyboardShortcut("=")
                     Button("Zoom Out") { store.selected?.zoom(by: -0.1) }.keyboardShortcut("-")
                     Divider()
+                    Button("Show Web Inspector") { store.selected?.showInspector() }.keyboardShortcut("i", modifiers: [.command, .option])
                 }
                 CommandMenu("Services") {
                     ForEach(Array(store.controllers.enumerated()), id: \.element.config.id) { index, controller in
