@@ -149,5 +149,17 @@ final class WebContainerView: NSView {
                 if findBar.isHidden { window?.makeFirstResponder(webView) }
             }
         }
+        if let current { bringToFront(current) }
+    }
+
+    // AppKit routes drag sessions to the topmost registered view even when it is hidden, so a hidden
+    // sibling above the selected web view would swallow the page's own drag and drop.
+    private func bringToFront(_ view: NSView) {
+        content.sortSubviews({ a, b, context in
+            let front = Unmanaged<NSView>.fromOpaque(context!).takeUnretainedValue()
+            if a === front { return .orderedDescending }
+            if b === front { return .orderedAscending }
+            return .orderedSame
+        }, context: Unmanaged.passUnretained(view).toOpaque())
     }
 }
