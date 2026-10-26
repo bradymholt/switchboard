@@ -107,6 +107,11 @@ enum WebRouting {
         return "0"
     }
 
+    static func allowsNewWindow(_ url: URL, serviceHosts: [String?]) -> Bool {
+        guard let host = url.host?.lowercased() else { return true }
+        return serviceHosts.contains { $0?.lowercased() == host } || isSignInPage(url)
+    }
+
     /// Domains whose subdomains are unrelated apps (Gmail vs. Docs), so links between them leave the service.
     static let multiAppDomains: Set<String> = ["google.com", "asana.com"]
 
@@ -326,13 +331,16 @@ final class ServiceController: NSObject, ObservableObject {
 
     // MARK: Routing
 
-    func allowsInApp(_ url: URL) -> Bool {
+    func allowsInApp(_ url: URL, newWindow: Bool) -> Bool {
+        if newWindow {
+            return WebRouting.allowsNewWindow(url, serviceHosts: [config.url.host, webView.url?.host])
+        }
         guard let site = WebRouting.siteKey(url.host) else { return true }
         return site == WebRouting.siteKey(config.url.host) || WebRouting.isSignInPage(url)
     }
 
     /// Returns true when the URL was handed to another app and the web view should not load it.
-    func routeExternally(_ url: URL, linkActivated: Bool) -> Bool {
+    func routeExternally(_ url: URL, linkActivated: Bool, newWindow: Bool = false) -> Bool {
         if !WebRouting.inAppSchemes.contains(url.scheme?.lowercased() ?? "") {
             NSWorkspace.shared.open(url)
             return true
@@ -343,7 +351,7 @@ final class ServiceController: NSObject, ObservableObject {
             store?.open(destination, in: target)
             return true
         }
-        if !allowsInApp(destination) {
+        if !allowsInApp(destination, newWindow: newWindow) {
             NSWorkspace.shared.open(destination)
             return true
         }
@@ -413,7 +421,7 @@ extension ServiceController: WKUIDelegate {
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = action.request.url, url.scheme != "about", !url.absoluteString.isEmpty,
-           routeExternally(url, linkActivated: true) {
+           routeExternally(url, linkActivated: true, newWindow: true) {
             return nil
         }
         if let url = action.request.url,
@@ -522,7 +530,8 @@ extension PopupWindow: NSWindowDelegate {
 extension PopupWindow: WKNavigationDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
         guard let url = action.request.url, action.targetFrame?.isMainFrame ?? false, let owner else { return .allow }
-        if owner.routeExternally(url, linkActivated: !window.isVisible || action.navigationType == .linkActivated) {
+        if owner.routeExternally(url, linkActivated: !window.isVisible || action.navigationType == .linkActivated,
+                                 newWindow: !window.isVisible) {
             if !window.isVisible { close() }
             return .cancel
         }

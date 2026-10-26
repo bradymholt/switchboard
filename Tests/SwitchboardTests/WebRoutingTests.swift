@@ -35,4 +35,11 @@ struct WebRoutingTests {
         #expect(!WebRouting.isGoogleAccountSwitch(to: URL(string: "https://calendar.google.com/calendar/u/0/r/week")!, from: current))
         #expect(!WebRouting.isGoogleAccountSwitch(to: URL(string: "https://docs.google.com/u/1/")!, from: current))
     }
+
+    @Test func keepsNewWindowsInAppOnlyForServiceHostOrSignIn() {
+        let hosts = ["app.asana.com"]
+        #expect(WebRouting.allowsNewWindow(URL(string: "https://app.asana.com/0/1")!, serviceHosts: hosts))
+        #expect(WebRouting.allowsNewWindow(URL(string: "https://accounts.google.com/gsi/select")!, serviceHosts: hosts))
+        #expect(!WebRouting.allowsNewWindow(URL(string: "https://help.asana.com/hc")!, serviceHosts: hosts))
+    }
 }
