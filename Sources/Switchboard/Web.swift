@@ -108,7 +108,7 @@ enum WebRouting {
     }
 
     /// Domains whose subdomains are unrelated apps (Gmail vs. Docs), so links between them leave the service.
-    static let multiAppDomains: Set<String> = ["google.com"]
+    static let multiAppDomains: Set<String> = ["google.com", "asana.com"]
 
     static func siteKey(_ host: String?) -> String? {
         guard let base = baseDomain(host) else { return nil }
