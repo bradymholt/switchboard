@@ -82,6 +82,21 @@ enum Scripts {
         };
       }
 
+      if (window.top === window) {
+        let resynced = false;
+        window.addEventListener('blur', (e) => { if (e.target === window) resynced = false; }, true);
+        // Slack's search only follows hover while it believes the window is focused, and in an embedded
+        // view it can be left thinking it's blurred after the page has regained focus. Re-announce focus
+        // on the first interaction of each focus period, since the page may have missed the real event.
+        const resync = (e) => {
+          if (!e.isTrusted || resynced || !document.hasFocus()) return;
+          resynced = true;
+          window.dispatchEvent(new FocusEvent('focus'));
+        };
+        window.addEventListener('pointerdown', resync, true);
+        window.addEventListener('keydown', resync, true);
+      }
+
       navigator.setAppBadge = (count) => { post({ type: 'badge', count: count === undefined ? -1 : Number(count) }); return Promise.resolve(); };
       navigator.clearAppBadge = () => { post({ type: 'badge', count: 0 }); return Promise.resolve(); };
     })();
