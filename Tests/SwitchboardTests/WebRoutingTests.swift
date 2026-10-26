@@ -25,6 +25,10 @@ struct WebRoutingTests {
         #expect(WebRouting.siteKey("www.bbc.co.uk") == "bbc.co.uk")
     }
 
+    @Test func treatsAsanaFormsAsSeparateSite() {
+        #expect(WebRouting.siteKey("form.asana.com") != WebRouting.siteKey("app.asana.com"))
+    }
+
     @Test func detectsGoogleAccountSwitch() {
         let current = URL(string: "https://calendar.google.com/calendar/u/0/r")!
         #expect(WebRouting.isGoogleAccountSwitch(to: URL(string: "https://calendar.google.com/calendar/u/0/r?authuser=1")!, from: current))
