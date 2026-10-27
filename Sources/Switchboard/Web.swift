@@ -467,6 +467,14 @@ extension ServiceController: WKUIDelegate {
                  initiatedBy frame: WKFrameInfo, type: WKMediaCaptureType) async -> WKPermissionDecision {
         .grant
     }
+
+    /// Private WebKit delegate; without it getDisplayMedia (screen sharing) is always denied.
+    /// 1 is WKDisplayCapturePermissionDecisionScreenPrompt, which shows the system picker.
+    @objc(_webView:requestDisplayCapturePermissionForOrigin:initiatedByFrame:withSystemAudio:decisionHandler:)
+    func webView(_ webView: WKWebView, requestDisplayCapturePermissionFor origin: WKSecurityOrigin,
+                 initiatedBy frame: WKFrameInfo, withSystemAudio: Bool, decisionHandler: @escaping (Int) -> Void) {
+        decisionHandler(1)
+    }
 }
 
 @MainActor
@@ -554,6 +562,12 @@ extension PopupWindow: WKUIDelegate {
     func webViewDidClose(_ webView: WKWebView) {
         window.close()
         close()
+    }
+
+    @objc(_webView:requestDisplayCapturePermissionForOrigin:initiatedByFrame:withSystemAudio:decisionHandler:)
+    func webView(_ webView: WKWebView, requestDisplayCapturePermissionFor origin: WKSecurityOrigin,
+                 initiatedBy frame: WKFrameInfo, withSystemAudio: Bool, decisionHandler: @escaping (Int) -> Void) {
+        decisionHandler(1)
     }
 }
 
