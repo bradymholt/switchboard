@@ -14,6 +14,15 @@ A minimal wrapper for web apps on macOS, built on the system WebKit (always as c
 
 ![Switchboard with Google Calendar selected](docs/screenshot-calendar.png)
 
+## Features
+
+- **Native and lightweight**: a small Swift app on the system WebKit, with no bundled browser engine.
+- **One window, many services**: a sidebar of web apps with ⌘1–9 switching; services keep running in the background.
+- **Unread badges**: per-service count or dot badges in the sidebar, plus a total on the Dock icon.
+- **macOS notifications**: web notifications show up as native notifications that open the right service.
+- **Multiple accounts**: profiles isolate cookies and logins, so you can run two accounts on the same site side by side.
+- **Plain JSON config**: one file defines your services, and edits apply live without a restart.
+
 ## Install
 
 Requires macOS 15 or later.
