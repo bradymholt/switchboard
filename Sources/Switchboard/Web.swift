@@ -11,7 +11,7 @@ enum Badge: Equatable {
     }
 
     init(fromTitle title: String) {
-        if let match = title.firstMatch(of: Badge.titleCount), let n = Int(match.output[1].substring ?? ""), n > 0 {
+        if let match = title.firstMatch(of: Badge.titleCount), let n = Int(match.output[1].substring ?? match.output[2].substring ?? ""), n > 0 {
             self = .count(n)
         } else if let first = title.first, "*•●!".contains(first) {
             self = .dot
@@ -31,7 +31,7 @@ enum Badge: Equatable {
         }
     }
 
-    private static let titleCount = try! Regex(#"\((\d+)\)"#)
+    private static let titleCount = try! Regex(#"\((\d+)\)|\b(\d+) new items?\b"#)
 }
 
 @MainActor

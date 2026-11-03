@@ -36,7 +36,7 @@ Edit `~/.config/switchboard/services.json` (⌘, in the app). Changes apply with
 | `url`     | yes      | Start page. |
 | `profile` | no       | Services sharing a profile share cookies/logins. Use different profiles for multiple accounts on the same site. |
 | `icon`    | no       | Image path (`~/…`) or URL. Default: fetched from the site (manifest → apple-touch-icon → favicon). |
-| `badge`   | no       | JS expression polled every 3s. Number = count badge, `true` = dot. Default: `(N)` in the page title, the Badging API, or a dot after a notification. |
+| `badge`   | no       | JS expression polled every 3s. Number = count badge, `true` = dot. Default: `(N)` or `N new items` in the page title, the Badging API, or a dot after a notification. |
 | `userAgent` | no     | `"chrome"` to pose as the installed Chrome (e.g. for Slack huddles), or a full user-agent string. Default: the installed Safari. |
 
 ## Behavior
