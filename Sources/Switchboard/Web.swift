@@ -75,10 +75,11 @@ enum WebRouting {
 
     static let inAppSchemes: Set<String> = ["http", "https", "about", "blob", "data", "javascript"]
     static let authDomains: Set<String> = ["google.com", "microsoftonline.com", "microsoft.com", "live.com", "apple.com", "okta.com", "auth0.com", "onelogin.com"]
+    static let authOnlyDomains: Set<String> = ["microsoftonline.com", "okta.com", "auth0.com", "onelogin.com"]
 
     static func isSignInPage(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased(), authDomains.contains(baseDomain(host) ?? "") else { return false }
-        return ["accounts.", "login.", "signin.", "auth."].contains { host.hasPrefix($0) }
+        return ["accounts.", "login.", "signin.", "auth.", "appleid."].contains { host.hasPrefix($0) }
     }
 
     static func baseDomain(_ host: String?) -> String? {
@@ -279,7 +280,7 @@ final class ServiceController: NSObject, ObservableObject {
 
     func allowsInApp(_ url: URL) -> Bool {
         guard let base = WebRouting.baseDomain(url.host) else { return true }
-        return base == WebRouting.baseDomain(config.url.host) || WebRouting.authDomains.contains(base)
+        return base == WebRouting.baseDomain(config.url.host) || WebRouting.authOnlyDomains.contains(base) || WebRouting.isSignInPage(url)
     }
 
     /// Returns true when the URL was handed to another app and the web view should not load it.
