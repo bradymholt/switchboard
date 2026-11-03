@@ -76,9 +76,48 @@ enum WebRouting {
     static let inAppSchemes: Set<String> = ["http", "https", "about", "blob", "data", "javascript"]
     static let authDomains: Set<String> = ["google.com", "microsoftonline.com", "microsoft.com", "live.com", "apple.com", "okta.com", "auth0.com", "onelogin.com"]
 
+    static let authOnlyDomains: Set<String> = ["microsoftonline.com", "okta.com", "auth0.com", "onelogin.com"]
+
     static func isSignInPage(_ url: URL) -> Bool {
-        guard let host = url.host?.lowercased(), authDomains.contains(baseDomain(host) ?? "") else { return false }
-        return ["accounts.", "login.", "signin.", "auth."].contains { host.hasPrefix($0) }
+        guard let host = url.host?.lowercased(), let base = baseDomain(host), authDomains.contains(base) else { return false }
+        return authOnlyDomains.contains(base) || ["accounts.", "login.", "signin.", "auth.", "appleid.", "idmsa."].contains { host.hasPrefix($0) }
+    }
+
+    /// Google wraps outbound links (Calendar, Gmail, Docs) in `google.com/url?q=…`, which serves an
+    /// HTML redirect page rather than a 302. Route on the destination so it isn't mistaken for a Google page.
+    static func unwrappingRedirector(_ url: URL) -> URL {
+        guard let host = url.host?.lowercased(), baseDomain(host) == "google.com", url.path == "/url",
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+              let target = items.first(where: { $0.name == "q" || $0.name == "url" })?.value,
+              let destination = URL(string: target), destination.host != nil else { return url }
+        return destination
+    }
+
+    /// Google's account switcher opens the other account (`/u/1/`, `?authuser=1`) in a new tab.
+    static func isGoogleAccountSwitch(to url: URL, from current: URL?) -> Bool {
+        guard let current, url.host?.lowercased() == current.host?.lowercased(),
+              baseDomain(url.host) == "google.com" else { return false }
+        return googleAccountIndex(url) != googleAccountIndex(current)
+    }
+
+    private static func googleAccountIndex(_ url: URL) -> String {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        if let authuser = items?.first(where: { $0.name == "authuser" })?.value { return authuser }
+        if let match = url.path.firstMatch(of: #/\/u\/(\d+)(\/|$)/#) { return String(match.1) }
+        return "0"
+    }
+
+    static func allowsNewWindow(_ url: URL, serviceHosts: [String?]) -> Bool {
+        guard let host = url.host?.lowercased() else { return true }
+        return serviceHosts.contains { $0?.lowercased() == host } || isSignInPage(url)
+    }
+
+    /// Domains whose subdomains are unrelated apps (Gmail vs. Docs), so links between them leave the service.
+    static let multiAppDomains: Set<String> = ["google.com", "asana.com"]
+
+    static func siteKey(_ host: String?) -> String? {
+        guard let base = baseDomain(host) else { return nil }
+        return multiAppDomains.contains(base) ? host?.lowercased() : base
     }
 
     static func baseDomain(_ host: String?) -> String? {
@@ -86,6 +125,14 @@ enum WebRouting {
         let secondLevel = ["co", "com", "org", "net", "ac", "gov", "edu"]
         let take = parts.count >= 3 && parts.last!.count == 2 && secondLevel.contains(String(parts[parts.count - 2])) ? 3 : 2
         return parts.suffix(take).joined(separator: ".")
+    }
+}
+
+/// Developer extras put "Inspect Element" in the context menu; the inspector is reachable from the View menu instead.
+final class ServiceWebView: WKWebView {
+    override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
+        super.willOpenMenu(menu, with: event)
+        menu.items.removeAll { $0.identifier?.rawValue == "WKMenuItemIdentifierInspectElement" }
     }
 }
 
@@ -115,12 +162,13 @@ final class ServiceController: NSObject, ObservableObject {
         configuration.websiteDataStore = DataStores.store(for: config.profile)
         configuration.applicationNameForUserAgent = WebRouting.userAgentSuffix
         configuration.preferences.isElementFullscreenEnabled = true
+        configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.userContentController.addUserScript(
             WKUserScript(source: Scripts.bridge, injectionTime: .atDocumentStart, forMainFrameOnly: false))
         let handler = ScriptHandler()
         configuration.userContentController.add(handler, name: "switchboard")
-        webView = WKWebView(frame: .zero, configuration: configuration)
+        webView = ServiceWebView(frame: .zero, configuration: configuration)
         super.init()
 
         handler.controller = self
@@ -165,6 +213,12 @@ final class ServiceController: NSObject, ObservableObject {
     func copyURL() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString((webView.url ?? config.url).absoluteString, forType: .string)
+    }
+
+    func showInspector() {
+        guard webView.responds(to: NSSelectorFromString("_inspector")),
+              let inspector = webView.value(forKey: "_inspector") as? NSObject else { return }
+        inspector.perform(NSSelectorFromString("show"))
     }
 
     func notificationClicked(id: String) {
@@ -277,19 +331,28 @@ final class ServiceController: NSObject, ObservableObject {
 
     // MARK: Routing
 
-    func allowsInApp(_ url: URL) -> Bool {
-        guard let base = WebRouting.baseDomain(url.host) else { return true }
-        return base == WebRouting.baseDomain(config.url.host) || WebRouting.authDomains.contains(base)
+    func allowsInApp(_ url: URL, newWindow: Bool) -> Bool {
+        if newWindow {
+            return WebRouting.allowsNewWindow(url, serviceHosts: [config.url.host, webView.url?.host])
+        }
+        guard let site = WebRouting.siteKey(url.host) else { return true }
+        return site == WebRouting.siteKey(config.url.host) || WebRouting.isSignInPage(url)
     }
 
     /// Returns true when the URL was handed to another app and the web view should not load it.
-    func routeExternally(_ url: URL, linkActivated: Bool) -> Bool {
+    func routeExternally(_ url: URL, linkActivated: Bool, newWindow: Bool = false) -> Bool {
         if !WebRouting.inAppSchemes.contains(url.scheme?.lowercased() ?? "") {
             NSWorkspace.shared.open(url)
             return true
         }
-        if linkActivated && !allowsInApp(url) {
-            NSWorkspace.shared.open(url)
+        guard linkActivated else { return false }
+        let destination = WebRouting.unwrappingRedirector(url)
+        if let target = store?.controller(forHost: destination.host, from: self) {
+            store?.open(destination, in: target)
+            return true
+        }
+        if !allowsInApp(destination, newWindow: newWindow) {
+            NSWorkspace.shared.open(destination)
             return true
         }
         return false
@@ -358,10 +421,12 @@ extension ServiceController: WKUIDelegate {
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = action.request.url, url.scheme != "about", !url.absoluteString.isEmpty,
-           routeExternally(url, linkActivated: true) {
+           routeExternally(url, linkActivated: true, newWindow: true) {
             return nil
         }
-        if action.navigationType == .linkActivated, let url = action.request.url, WebRouting.isSignInPage(url) {
+        if let url = action.request.url,
+           (action.navigationType == .linkActivated && WebRouting.isSignInPage(url))
+            || WebRouting.isGoogleAccountSwitch(to: url, from: self.webView.url) {
             self.webView.load(action.request)
             return nil
         }
@@ -402,6 +467,14 @@ extension ServiceController: WKUIDelegate {
                  initiatedBy frame: WKFrameInfo, type: WKMediaCaptureType) async -> WKPermissionDecision {
         .grant
     }
+
+    /// Private WebKit delegate; without it getDisplayMedia (screen sharing) is always denied.
+    /// 1 is WKDisplayCapturePermissionDecisionScreenPrompt, which shows the system picker.
+    @objc(_webView:requestDisplayCapturePermissionForOrigin:initiatedByFrame:withSystemAudio:decisionHandler:)
+    func webView(_ webView: WKWebView, requestDisplayCapturePermissionFor origin: WKSecurityOrigin,
+                 initiatedBy frame: WKFrameInfo, withSystemAudio: Bool, decisionHandler: @escaping (Int) -> Void) {
+        decisionHandler(1)
+    }
 }
 
 @MainActor
@@ -425,7 +498,7 @@ final class PopupWindow: NSObject {
 
     init(configuration: WKWebViewConfiguration, features: WKWindowFeatures, owner: ServiceController) {
         let frame = NSRect(x: 0, y: 0, width: features.width?.doubleValue ?? 900, height: features.height?.doubleValue ?? 720)
-        webView = WKWebView(frame: frame, configuration: configuration)
+        webView = ServiceWebView(frame: frame, configuration: configuration)
         window = NSWindow(contentRect: frame, styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
         self.owner = owner
         super.init()
@@ -465,7 +538,8 @@ extension PopupWindow: NSWindowDelegate {
 extension PopupWindow: WKNavigationDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
         guard let url = action.request.url, action.targetFrame?.isMainFrame ?? false, let owner else { return .allow }
-        if owner.routeExternally(url, linkActivated: !window.isVisible || action.navigationType == .linkActivated) {
+        if owner.routeExternally(url, linkActivated: !window.isVisible || action.navigationType == .linkActivated,
+                                 newWindow: !window.isVisible) {
             if !window.isVisible { close() }
             return .cancel
         }
@@ -488,6 +562,12 @@ extension PopupWindow: WKUIDelegate {
     func webViewDidClose(_ webView: WKWebView) {
         window.close()
         close()
+    }
+
+    @objc(_webView:requestDisplayCapturePermissionForOrigin:initiatedByFrame:withSystemAudio:decisionHandler:)
+    func webView(_ webView: WKWebView, requestDisplayCapturePermissionFor origin: WKSecurityOrigin,
+                 initiatedBy frame: WKFrameInfo, withSystemAudio: Bool, decisionHandler: @escaping (Int) -> Void) {
+        decisionHandler(1)
     }
 }
 

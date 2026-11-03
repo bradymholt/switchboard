@@ -1,17 +1,45 @@
 # Switchboard
 
+<img align="left" src="https://user-images.githubusercontent.com/759811/210273710-b13913e2-0a71-4d9d-94da-1fe538b8a73e.gif"/>
+
+<br/>
+
+ &nbsp;**Would you take a quick second and ⭐️ my repo?**
+
+<br/>
+
 A minimal wrapper for web apps on macOS, built on the system WebKit (always as current as Safari).
 
 ![Switchboard with Slack selected, showing count and dot badges in the sidebar](docs/screenshot-chat.png)
 
 ![Switchboard with Google Calendar selected](docs/screenshot-calendar.png)
 
-## Requirements
+## Features
 
-- macOS 15 or later
-- Swift 6 (Xcode 16 or later, or the Command Line Tools)
+- **Native and lightweight**: a small Swift app on the system WebKit, with no bundled browser engine.
+- **One window, many services**: a sidebar of web apps with ⌘1–9 switching; services keep running in the background.
+- **Unread badges**: per-service count or dot badges in the sidebar, plus a total on the Dock icon.
+- **macOS notifications**: web notifications show up as native notifications that open the right service.
+- **Multiple accounts**: profiles isolate cookies and logins, so you can run two accounts on the same site side by side.
+- **Plain JSON config**: one file defines your services, and edits apply live without a restart.
 
-## Build
+## Install
+
+Requires macOS 15 or later.
+
+1. Download `Switchboard-<version>.zip` from the [latest release](https://github.com/bradymholt/switchboard/releases/latest) and unzip it.
+2. Move `Switchboard.app` to `/Applications`.
+3. The app isn't notarized, so macOS blocks the first launch. Clear the quarantine flag:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Switchboard.app
+   ```
+
+   Or try to open it once, then click **Open Anyway** in System Settings → Privacy & Security.
+
+## Build from source
+
+Requires Swift 6 (Xcode 16 or later, or the Command Line Tools).
 
 ```bash
 ./build.sh            # builds build/Switchboard.app
@@ -22,6 +50,8 @@ A minimal wrapper for web apps on macOS, built on the system WebKit (always as c
 ## Services
 
 Edit `~/.config/switchboard/services.json` (⌘, in the app). Changes apply within ~2 seconds.
+
+⌘, opens the file in whatever app macOS uses for `.json` files. To change it, select the file in Finder, press ⌘I, pick an app under "Open with", and click "Change All".
 
 ```json
 [
@@ -43,10 +73,10 @@ Edit `~/.config/switchboard/services.json` (⌘, in the app). Changes apply with
 
 - Web notifications become macOS notifications; clicking one opens the service and fires the page's `onclick`.
 - Dock badge shows the total unread count.
-- Links to other sites open in your default browser; sign-in popups (Google, Microsoft, Apple, Okta…) stay in-app.
-- ⌘1–9 switch services, ⇧⌘[ / ⇧⌘] cycle, ⌘R reload, ⌘[ / ⌘] back/forward, ⌘= / ⌘- / ⌘0 zoom.
+- Links to another configured service switch to that service; other sites open in your default browser. Sign-in popups (Google, Microsoft, Apple, Okta…) stay in-app.
+- ⌘1–9 switch services, ⇧⌘[ / ⇧⌘] cycle, ⌘R reload, ⌘[ / ⌘] back/forward, ⌘= / ⌘- / ⌘0 zoom, ⌘F find in page.
 - Closing the window hides it; services keep running. Right-click an icon for reload / open in browser / copy URL.
-- Web Inspector: right-click page → Inspect Element.
+- Web Inspector: View → Show Web Inspector (⌥⌘I).
 
 ## License
 

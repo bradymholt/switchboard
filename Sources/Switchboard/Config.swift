@@ -17,10 +17,9 @@ enum ConfigFile {
 
     static let starter = """
     [
-      { "name": "Asana", "url": "https://app.asana.com" },
-      { "name": "Gmail", "url": "https://mail.google.com/mail/u/0/", "profile": "work" },
-      { "name": "Gmail (Personal)", "url": "https://mail.google.com/mail/u/0/", "profile": "personal" },
-      { "name": "Calendar", "url": "https://calendar.google.com", "profile": "work" }
+      { "name": "Gmail", "url": "https://mail.google.com/mail/u/0/" },
+      { "name": "Calendar", "url": "https://calendar.google.com" },
+      { "name": "GitHub", "url": "https://github.com" }
     ]
 
     """

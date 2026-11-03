@@ -14,6 +14,11 @@ struct SwitchboardApp: App {
                     Button("Edit Services…", action: ConfigFile.open).keyboardShortcut(",")
                 }
                 CommandGroup(replacing: .newItem) {}
+                CommandGroup(after: .textEditing) {
+                    Button("Find…") { store.container.findBar.show() }.keyboardShortcut("f")
+                    Button("Find Next") { store.container.findBar.findNext() }.keyboardShortcut("g")
+                    Button("Find Previous") { store.container.findBar.findPrevious() }.keyboardShortcut("g", modifiers: [.command, .shift])
+                }
                 CommandGroup(after: .toolbar) {
                     Button("Reload") { store.selected?.reload() }.keyboardShortcut("r")
                     Button("Back") { store.selected?.goBack() }.keyboardShortcut("[")
@@ -23,6 +28,7 @@ struct SwitchboardApp: App {
                     Button("Zoom In") { store.selected?.zoom(by: 0.1) }.keyboardShortcut("=")
                     Button("Zoom Out") { store.selected?.zoom(by: -0.1) }.keyboardShortcut("-")
                     Divider()
+                    Button("Show Web Inspector") { store.selected?.showInspector() }.keyboardShortcut("i", modifiers: [.command, .option])
                 }
                 CommandMenu("Services") {
                     ForEach(Array(store.controllers.enumerated()), id: \.element.config.id) { index, controller in
@@ -86,9 +92,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUs
 
         store.start()
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-                  event.charactersIgnoringModifiers == "r" else { return event }
-            ServiceStore.shared.selected?.reload()
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            switch (modifiers, event.charactersIgnoringModifiers) {
+            case (.command, "r"): store.selected?.reload()
+            case (.command, "f"): store.container.findBar.show()
+            case (.command, "g"): store.container.findBar.findNext()
+            case ([.command, .shift], "g"), ([.command, .shift], "G"): store.container.findBar.findPrevious()
+            default: return event
+            }
             return nil
         }
         window.makeKeyAndOrderFront(nil)

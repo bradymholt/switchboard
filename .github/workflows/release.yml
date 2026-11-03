@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (e.g. 0.2.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      VERSION: ${{ inputs.version }}
+      BUILD_NUMBER: ${{ github.run_number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate version
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must look like X.Y.Z, got '$VERSION'" >&2
+            exit 1
+          fi
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists" >&2
+            exit 1
+          fi
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Zip
+        run: ditto -c -k --keepParent build/Switchboard.app "Switchboard-$VERSION.zip"
+
+      - name: Create release
+        run: |
+          gh release create "v$VERSION" "Switchboard-$VERSION.zip" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSION" \
+            --generate-notes
