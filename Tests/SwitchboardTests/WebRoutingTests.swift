@@ -42,4 +42,15 @@ struct WebRoutingTests {
         #expect(WebRouting.allowsNewWindow(URL(string: "https://accounts.google.com/gsi/select")!, serviceHosts: hosts))
         #expect(!WebRouting.allowsNewWindow(URL(string: "https://help.asana.com/hc")!, serviceHosts: hosts))
     }
+
+    @Test func treatsContentDispositionAttachmentAsDownload() {
+        func response(_ disposition: String?) -> URLResponse {
+            HTTPURLResponse(url: URL(string: "https://mail.google.com/file.pdf")!, statusCode: 200, httpVersion: nil,
+                            headerFields: disposition.map { ["Content-Disposition": $0] })!
+        }
+        #expect(WebRouting.isAttachment(response("attachment; filename=\"a.pdf\"")))
+        #expect(WebRouting.isAttachment(response("Attachment")))
+        #expect(!WebRouting.isAttachment(response("inline; filename=\"a.pdf\"")))
+        #expect(!WebRouting.isAttachment(response(nil)))
+    }
 }

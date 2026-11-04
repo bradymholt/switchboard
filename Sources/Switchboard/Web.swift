@@ -107,6 +107,13 @@ enum WebRouting {
         return "0"
     }
 
+    /// WebKit reports attachment PDFs as showable, so Gmail and Drive downloads (a hidden frame or
+    /// `window.open` of an attachment URL) would render invisibly instead of downloading.
+    static func isAttachment(_ response: URLResponse) -> Bool {
+        let disposition = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Disposition") ?? ""
+        return disposition.trimmingCharacters(in: .whitespaces).lowercased().hasPrefix("attachment")
+    }
+
     static func allowsNewWindow(_ url: URL, serviceHosts: [String?]) -> Bool {
         guard let host = url.host?.lowercased() else { return true }
         return serviceHosts.contains { $0?.lowercased() == host } || isSignInPage(url)
@@ -372,7 +379,7 @@ extension ServiceController: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse) async -> WKNavigationResponsePolicy {
-        response.canShowMIMEType ? .allow : .download
+        WebRouting.isAttachment(response.response) || !response.canShowMIMEType ? .download : .allow
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -544,6 +551,15 @@ extension PopupWindow: WKNavigationDelegate {
             return .cancel
         }
         return .allow
+    }
+
+    func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse) async -> WKNavigationResponsePolicy {
+        WebRouting.isAttachment(response.response) || !response.canShowMIMEType ? .download : .allow
+    }
+
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        download.delegate = owner
+        if !window.isVisible { close() }
     }
 
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
